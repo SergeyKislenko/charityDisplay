@@ -1,7 +1,6 @@
 package ru.charity.proj.restclient.impl;
 
-import com.google.gson.Gson;
-import com.google.gson.internal.LinkedTreeMap;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,12 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import ru.charity.proj.config.RestConfig;
-import ru.charity.proj.entity.Account;
 import ru.charity.proj.restclient.RestClient;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 @Component
 public class RestClientImpl implements RestClient {
@@ -32,21 +26,20 @@ public class RestClientImpl implements RestClient {
 
     @Override
     public Double getBalance() {
-        Account ac = null;
+        Double balance  = null;
         HttpEntity<String> entity = new HttpEntity<String>(getRestHeaders());
         ResponseEntity<String> response = restConfig.getRestTemplate()
                 .exchange(getBalanceUrl(), HttpMethod.GET, entity, String.class);
 
         try {
-            Gson gson = new Gson();
-            HashMap<String, Object> jsonMap = gson.fromJson(response.getBody(), HashMap.class);
-            ArrayList accounts = (ArrayList) jsonMap.get("accounts");
-            ac = new Account((LinkedTreeMap) accounts.get(0));
-            LOG.info("Баланс: " + ac.getBalance());
+            JSONObject obj = new JSONObject(response.getBody());
+            JSONObject account = (JSONObject) obj.getJSONArray("accounts").get(0);
+            balance = (Double) account.getJSONObject("balance").get("amount");
+            LOG.info("Баланс: " + balance);
         } catch (Exception e) {
             LOG.error("Ошибка обработки ответа от Qiwi. Не парсится баланс");
         }
-        return ac != null ? ac.getBalance() : null;
+        return balance;
     }
 
     private String getBalanceUrl() {
